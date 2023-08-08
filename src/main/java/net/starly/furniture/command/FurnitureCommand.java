@@ -1,11 +1,15 @@
 package net.starly.furniture.command;
 
 import net.starly.furniture.Furniture;
+import net.starly.furniture.manager.FurnitureManager;
 import net.starly.furniture.message.MessageContent;
 import net.starly.furniture.message.MessageType;
+import net.starly.furniture.util.FurnitureUtil;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 
 public class FurnitureCommand implements CommandExecutor {
@@ -22,6 +26,8 @@ public class FurnitureCommand implements CommandExecutor {
             }
 
             //TODO 리로드
+
+            content.getMessageAfterPrefix(MessageType.NORMAL,"reloadComplete").ifPresent(sender::sendMessage);
         }
 
         if (!(sender instanceof Player)) {
@@ -38,17 +44,32 @@ public class FurnitureCommand implements CommandExecutor {
         }
 
         String name;
+        FurnitureUtil furnitureUtil = FurnitureUtil.getInstance();
 
         switch (args[0]) {
-
             case "생성":
-                if (args.length != 2) {
-                    //TODO 잘못된 명령어 사용
+                if (args.length != 3) {
+                    content.getMessageAfterPrefix(MessageType.ERROR, "wrongCommand").ifPresent(sender::sendMessage);
                     return false;
                 }
-                name = args[1];
+                if (FurnitureManager.getFurnitureMap().containsKey(args[1])) {
+                    content.getMessageAfterPrefix(MessageType.ERROR, "alreadyExistName").ifPresent(sender::sendMessage);
+                    return false;
+                }
 
-                return true;
+                name = args[1];
+                int customModelData = Integer.parseInt(args[2]);
+                furnitureUtil.createFurniture(name, customModelData);
+                break;
+
+            case "메뉴":
+                if (args.length != 1) {
+                    content.getMessageAfterPrefix(MessageType.ERROR, "wrongCommand").ifPresent(sender::sendMessage);
+                    return false;
+                }
+
+                furnitureUtil.openFurnitureMenu(player, 1);
+                break;
         }
 
         return false;

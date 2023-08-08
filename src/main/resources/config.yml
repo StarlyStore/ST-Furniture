@@ -19,3 +19,6 @@ errorMessages:
 
   # 콘솔에서 사용하지 못하는 명령어를 사용하였을 때 출력되는 메시지
   noConsoleCommand: '&c콘솔에서는 사용할 수 없는 명령어입니다.'
+
+  # 이미 존재한 이름을 입력하였을때 출력되는 메세지
+  alreadyExistName: '&c이미 존재하는 이름입니다.'
