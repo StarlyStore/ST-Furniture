@@ -23,7 +23,7 @@ public class Furniture extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        // LOAD DATA
+        // LOAD DATAf
         saveDefaultConfig();
         MessageContent.getInstance().initialize(getConfig());
 
