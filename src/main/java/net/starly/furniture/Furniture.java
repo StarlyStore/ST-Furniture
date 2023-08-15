@@ -32,6 +32,7 @@ public class Furniture extends JavaPlugin {
 
         // COMMAND
         getCommand("furniture").setExecutor(new FurnitureCommand());
+        getCommand("furniture").setTabCompleter(new FurnitureCommand());
 
         // LISTENER
         registerListeners(

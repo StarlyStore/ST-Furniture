@@ -12,6 +12,6 @@ public class PlayerInventoryCloseListener implements Listener {
     public void onInventoryClose(InventoryCloseEvent event) {
         Player player = (Player) event.getPlayer();
         FurnitureUtil.getPlayerEntityMap().remove(player.getUniqueId());
-        FurnitureUtil.getPlayerInventoryPageMap().remove(player.getUniqueId());
+        FurnitureUtil.getPlayerInventoryMap().remove(player.getUniqueId());
     }
 }

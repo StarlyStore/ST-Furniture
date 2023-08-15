@@ -8,7 +8,22 @@ messages:
   prefix: ' &6 가구 | &r'
 
   # 콘피그를 리로드 하였을 때 출력되는 메시지
-  reloadComplete: '&a콘피그를 리로드하였습니다.'
+  reloadComplete: '&a콘피그를 리로드 하였습니다.'
+
+  # 가구를 생성 하였을 때 출력되는 메세지
+  createFurniture: '{name} 가구를 생성 하였습니다.'
+
+  # 가구를 삭제 하였을 때 출력되는 메세지
+  removeFurniture: '{name} 가구를 삭제 하였습니다.'
+
+  # 가구 메뉴를 오픈하였을 때 출력되는 메세지
+  openFurnitureMenu: '가구 메뉴를 열었습니다.'
+
+  # 가구를 설치 하였을 때 출력되는 메세지
+  onPlaceFurniture: '{name} 가구를 설치 하였습니다.'
+
+  # 가구를 제거/회수 하였을 때 출력되는 메세지
+  onRemoveFurniture: '{name} 가구를 제거 하였습니다.'
 
 errorMessages:
   # 권한이 없을 때 출력되는 메시지
@@ -22,3 +37,9 @@ errorMessages:
 
   # 이미 존재한 이름을 입력하였을때 출력되는 메세지
   alreadyExistName: '&c이미 존재하는 이름입니다.'
+
+  # 인벤토리에 공간이 없을때 출력되는 메세지
+  noSpaceInInventory: '&c인벤토리에 공간이 없습니다.'
+
+  # 가구 목록이 비어있을때 출력되는 메세지
+  noItemInMenu: '&c가구 목록이 비어있습니다.'

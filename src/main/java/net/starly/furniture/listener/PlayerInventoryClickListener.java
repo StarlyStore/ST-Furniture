@@ -6,21 +6,26 @@ import net.starly.core.jb.version.nms.wrapper.NBTTagCompoundWrapper;
 import net.starly.core.util.InventoryUtil;
 import net.starly.furniture.builder.ItemBuilder;
 import net.starly.furniture.manager.FurnitureManager;
+import net.starly.furniture.message.MessageContent;
+import net.starly.furniture.message.MessageType;
+import net.starly.furniture.page.PaginationInventoryHolder;
+import net.starly.furniture.page.PaginationManager;
+import net.starly.furniture.util.FurnitureNbtUtil;
 import net.starly.furniture.util.FurnitureUtil;
+import org.bukkit.GameMode;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 public class PlayerInventoryClickListener implements Listener {
 
@@ -29,8 +34,12 @@ public class PlayerInventoryClickListener implements Listener {
         Player player = (Player) event.getWhoClicked();
         FurnitureUtil furnitureUtil = FurnitureUtil.getInstance();
         Map<UUID, Entity> playerEntityMap = FurnitureUtil.getPlayerEntityMap();
-        Map<UUID, Integer> playerInventoryPageMap = FurnitureUtil.getPlayerInventoryPageMap();
+        Map<UUID, Boolean> playerInventoryMap = FurnitureUtil.getPlayerInventoryMap();
+        Map<UUID, ItemStack> playerFurnitureMap = FurnitureUtil.getPlayerFurnitureMap();
         Map<String, Integer> furnitureMap = FurnitureManager.getFurnitureMap();
+        MessageContent content = MessageContent.getInstance();
+
+        if (event.getCurrentItem() == null || event.getCurrentItem().getType() == Material.AIR) return;
 
         if (playerEntityMap.containsKey(player.getUniqueId())) {
             event.setCancelled(true);
@@ -56,31 +65,55 @@ public class PlayerInventoryClickListener implements Listener {
                     break;
 
                 case 15:
+                    if (!player.getGameMode().equals(GameMode.CREATIVE)) {
+                        if (InventoryUtil.getSpace(player.getInventory()) > 0) {
+                            player.getInventory().addItem(playerFurnitureMap.get(player.getUniqueId()));
+                        } else {
+                            content.getMessageAfterPrefix(MessageType.ERROR, "noSpaceInInventory").ifPresent(player::sendMessage);
+                            return;
+                        }
+                    }
                     furnitureUtil.removeArmorStand((ArmorStand) armorStand);
                     player.closeInventory();
+
+                    String furnitureName = playerFurnitureMap.get(player.getUniqueId()).getItemMeta().getDisplayName();
+
+                    MessageContent.getInstance().getMessageAfterPrefix(MessageType.NORMAL, "onRemoveFurniture").ifPresent(message -> {
+                        String replacedMessage = message.replace("{name}", furnitureName);
+                        player.sendMessage(replacedMessage);
+                    });
+
                     break;
             }
+            return;
         }
 
-        if (playerInventoryPageMap.containsKey(player.getUniqueId())) {
+        if (playerInventoryMap.containsKey(player.getUniqueId())) {
             event.setCancelled(true);
-            int page = playerInventoryPageMap.get(player.getUniqueId());
 
-            if (event.getSlot() == 48 && event.getClickedInventory().getItem(48).getType().equals(Material.ARROW)) {
-                FurnitureUtil.getInstance().openFurnitureMenu(player, page - 1);
+            PaginationInventoryHolder paginationHolder = (PaginationInventoryHolder) event.getClickedInventory().getHolder();
+            PaginationManager paginationManager = paginationHolder.getPaginationManager();
+            FurnitureNbtUtil furnitureNbtUtil = FurnitureNbtUtil.getInstance();
+
+            if (event.getSlot() == paginationHolder.getPrevBtnSlot()) {
+                paginationManager.prevPage();
+                FurnitureUtil.getInstance().pageInventory(player, paginationHolder);
                 return;
             }
-            if (event.getSlot() == 50 && event.getClickedInventory().getItem(50).getType().equals(Material.ARROW)) {
-                FurnitureUtil.getInstance().openFurnitureMenu(player, page + 1);
+
+            if (event.getSlot() == paginationHolder.getNextBtnSlot()) {
+                paginationManager.nextPage();
+                FurnitureUtil.getInstance().pageInventory(player, paginationHolder);
                 return;
             }
 
-            if ((event.getSlot() > 44) || (event.getSlot() < 9)) return;
+            if (event.getSlot() > 45) return;
 
-            int clickedFurnitureIndex = page * 36 - 36 + event.getSlot() - 9;
+            int clickedFurnitureIndex = paginationManager.getCurrentPage() * 45 - 45 + event.getSlot();
 
             Set<String> furnitureKey = furnitureMap.keySet();
-            ArrayList<String> furnitureList = new ArrayList<>(furnitureKey);
+            List<String> furnitureList = new ArrayList<>(furnitureKey);
+            Collections.sort(furnitureList);
             if (furnitureList.size() - 1 < clickedFurnitureIndex) return;
             String furniture = furnitureList.get(clickedFurnitureIndex);
 
@@ -88,21 +121,16 @@ public class PlayerInventoryClickListener implements Listener {
                     .setName(furniture)
                     .build();
 
-            ItemStackWrapper itemStackWrapper = NmsItemStackUtil.getInstance().asNMSCopy(itemStack);
-            NBTTagCompoundWrapper nbtTagCompoundWrapper = itemStackWrapper.getTag();
-
-            nbtTagCompoundWrapper.setString("customModelData", furnitureMap.get(furniture) + "");
-            ItemMeta itemMeta = NmsItemStackUtil.getInstance().asBukkitCopy(itemStackWrapper).getItemMeta();
-
-            itemStack.setItemMeta(itemMeta);
+            furnitureNbtUtil.setNbt(itemStack, "customModelData", furnitureMap.get(furniture) + "");
+            furnitureNbtUtil.setNbt(itemStack, "furnitureName", furniture);
 
             if (InventoryUtil.getSpace(player.getInventory()) > 0) {
                 player.getInventory().addItem(itemStack);
             } else {
-                player.sendMessage("공간이 없음");
+                content.getMessageAfterPrefix(MessageType.ERROR, "noSpaceInInventory").ifPresent(player::sendMessage);
             }
             player.closeInventory();
-
+            return;
         }
     }
 

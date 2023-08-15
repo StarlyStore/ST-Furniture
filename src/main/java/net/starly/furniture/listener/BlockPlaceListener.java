@@ -1,9 +1,11 @@
 package net.starly.furniture.listener;
 
-import net.starly.core.jb.version.nms.tank.NmsItemStackUtil;
-import net.starly.core.jb.version.nms.wrapper.ItemStackWrapper;
-import net.starly.core.jb.version.nms.wrapper.NBTTagCompoundWrapper;
 import net.starly.furniture.builder.ItemBuilder;
+import net.starly.furniture.message.MessageContent;
+import net.starly.furniture.message.MessageType;
+import net.starly.furniture.util.FurnitureNbtUtil;
+import net.starly.furniture.util.FurnitureUtil;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.ArmorStand;
@@ -17,12 +19,14 @@ import org.bukkit.inventory.ItemStack;
 public class BlockPlaceListener implements Listener {
 
     @EventHandler
-    public void onPlayerInteract(BlockPlaceEvent event) {
+    public void onPlayerPlace(BlockPlaceEvent event) {
         Player player = event.getPlayer();
 
         ItemStack heldItem = player.getInventory().getItemInMainHand();
         if (heldItem == null) return;
         if (heldItem.getType() != Material.IRON_BLOCK) return;
+        FurnitureNbtUtil furnitureNbtUtil = FurnitureNbtUtil.getInstance();
+        if (null == furnitureNbtUtil.getNbt(heldItem, "furnitureName")) return;
 
         event.setCancelled(true);
 
@@ -31,15 +35,33 @@ public class BlockPlaceListener implements Listener {
 
         armorStand.setVisible(false);
 
-        NmsItemStackUtil util = NmsItemStackUtil.getInstance();
-        ItemStackWrapper nmsItemStack = util.asNMSCopy(heldItem);
-        NBTTagCompoundWrapper nbtTag = nmsItemStack.getTag();
-        int customModelData = Integer.parseInt(nbtTag.getString("customModelData"));
+        int customModelData = Integer.parseInt(furnitureNbtUtil.getNbt(heldItem, "customModelData"));
+        String furnitureName = furnitureNbtUtil.getNbt(heldItem, "furnitureName");
 
         ItemStack itemStack = new ItemBuilder(Material.IRON_HELMET)
                 .setCustomModelData(customModelData)
                 .build();
 
+        furnitureNbtUtil.setNbt(itemStack, "owner", player.getUniqueId().toString());
         armorStand.setHelmet(itemStack);
+
+        if (!(player.getGameMode() == GameMode.CREATIVE)) {
+            player.getInventory().remove(heldItem);
+            heldItem.setAmount(heldItem.getAmount() - 1);
+            player.getInventory().addItem(heldItem);
+        }
+
+        itemStack = new ItemBuilder(Material.IRON_BLOCK)
+                .setName(furnitureName)
+                .build();
+
+        furnitureNbtUtil.setNbt(itemStack, "customModelData", String.valueOf(customModelData));
+        furnitureNbtUtil.setNbt(itemStack, "furnitureName", furnitureName);
+
+        FurnitureUtil.getPlayerFurnitureMap().put(player.getUniqueId(), itemStack);
+        MessageContent.getInstance().getMessageAfterPrefix(MessageType.NORMAL, "onPlaceFurniture").ifPresent(message -> {
+            String replacedMessage = message.replace("{name}", furnitureName);
+            player.sendMessage(replacedMessage);
+        });
     }
 }

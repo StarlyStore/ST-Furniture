@@ -1,5 +1,8 @@
 package net.starly.furniture.listener;
 
+import net.starly.furniture.message.MessageContent;
+import net.starly.furniture.message.MessageType;
+import net.starly.furniture.util.FurnitureNbtUtil;
 import net.starly.furniture.util.FurnitureUtil;
 import org.bukkit.craftbukkit.v1_12_R1.entity.CraftArmorStand;
 import org.bukkit.entity.ArmorStand;
@@ -9,6 +12,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
+import org.bukkit.inventory.ItemStack;
 
 public class PlayerInterectorListener implements Listener {
 
@@ -16,13 +20,20 @@ public class PlayerInterectorListener implements Listener {
     public void onInteract(PlayerInteractAtEntityEvent event) {
         Player player = event.getPlayer();
 
-        if (!player.isSneaking()) return;
         if (event.getRightClicked().getType() != EntityType.ARMOR_STAND) return;
-
         event.setCancelled(true);
+        if (!player.isSneaking()) return;
 
-        Entity armorStand = event.getRightClicked();
+        Entity entity = event.getRightClicked();
+        ArmorStand armorStand = (ArmorStand) entity;
+        ItemStack helmet = armorStand.getHelmet();
+        String owner = FurnitureNbtUtil.getInstance().getNbt(helmet, "owner");
 
-        FurnitureUtil.getInstance().openFurnitureEditGui(player, armorStand);
+        if (!owner.equalsIgnoreCase(player.getUniqueId().toString()) || !player.isOp()) {
+            MessageContent.getInstance().getMessageAfterPrefix(MessageType.ERROR, "noPermission");
+            return;
+        }
+
+        FurnitureUtil.getInstance().openFurnitureEditGui(player, entity);
     }
 }

@@ -5,11 +5,12 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import lombok.Getter;
 import net.starly.furniture.Furniture;
+import net.starly.furniture.builder.ItemBuilder;
+import org.bukkit.Material;
+import org.bukkit.inventory.ItemStack;
 
 import java.io.*;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class FurnitureManager {
 
@@ -27,7 +28,6 @@ public class FurnitureManager {
 
     public void saveAll() {
         Set<String> furniture = furnitureMap.keySet();
-        System.out.println(furniture);
         furniture.forEach(this::save);
     }
 
@@ -69,7 +69,6 @@ public class FurnitureManager {
         File dataFile = new File(directory, furniture + ".json");
 
         if (!directory.exists()) directory.mkdir();
-        if (!dataFile.exists()) return;
 
         try (BufferedReader reader = new BufferedReader(new FileReader(dataFile))) {
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -81,6 +80,21 @@ public class FurnitureManager {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public List<ItemStack> getItems() {
+        List<ItemStack> items = new ArrayList<>();
+        List<String> furnitureNames = new ArrayList<>(furnitureMap.keySet());
+        Collections.sort(furnitureNames);
+        furnitureNames.forEach(name -> {
+            ItemStack itemStack = new ItemBuilder(Material.IRON_BLOCK)
+                    .setName("§f" + name)
+                    .setLore("§f커스텀 모델 데이터: " + furnitureMap.get(name))
+                    .setCustomModelData(furnitureMap.get(name))
+                    .build();
+            items.add(itemStack);
+        });
+        return items;
     }
 
 

@@ -5,14 +5,17 @@ import net.starly.furniture.manager.FurnitureManager;
 import net.starly.furniture.message.MessageContent;
 import net.starly.furniture.message.MessageType;
 import net.starly.furniture.util.FurnitureUtil;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.CommandSender;
+import org.bukkit.command.*;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.util.StringUtil;
 
-public class FurnitureCommand implements CommandExecutor {
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class FurnitureCommand implements CommandExecutor, TabExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
 
@@ -20,13 +23,12 @@ public class FurnitureCommand implements CommandExecutor {
         Furniture plugin = Furniture.getInstance();
 
         if (args.length > 0 && ((args[0].equalsIgnoreCase("리로드")) || (args[0]).equalsIgnoreCase("reload"))) {
-            if (!sender.isOp()) {
+            if (!sender.hasPermission("starly.furniture.reload")) {
                 content.getMessageAfterPrefix(MessageType.ERROR, "noPermission").ifPresent(sender::sendMessage);
                 return false;
             }
 
-            //TODO 리로드
-
+            FurnitureManager.getInstance().loadAll();
             content.getMessageAfterPrefix(MessageType.NORMAL,"reloadComplete").ifPresent(sender::sendMessage);
         }
 
@@ -47,7 +49,12 @@ public class FurnitureCommand implements CommandExecutor {
         FurnitureUtil furnitureUtil = FurnitureUtil.getInstance();
 
         switch (args[0]) {
+            case "create":
             case "생성":
+                if (!player.hasPermission("starly.furniture.create")) {
+                    content.getMessageAfterPrefix(MessageType.ERROR, "noPermission").ifPresent(sender::sendMessage);
+                    return false;
+                }
                 if (args.length != 3) {
                     content.getMessageAfterPrefix(MessageType.ERROR, "wrongCommand").ifPresent(sender::sendMessage);
                     return false;
@@ -60,18 +67,73 @@ public class FurnitureCommand implements CommandExecutor {
                 name = args[1];
                 int customModelData = Integer.parseInt(args[2]);
                 furnitureUtil.createFurniture(name, customModelData);
-                break;
 
+                content.getMessageAfterPrefix(MessageType.NORMAL, "createFurniture").ifPresent(message -> {
+                    String replacedMessage = message.replace("{name}", name);
+                    player.sendMessage(replacedMessage);
+                });
+                return true;
+
+
+            case "remove":
+            case "삭제":
+                if (!player.hasPermission("starly.furniture.remove")) {
+                    content.getMessageAfterPrefix(MessageType.ERROR, "noPermission").ifPresent(sender::sendMessage);
+                    return false;
+                }
+                if (args.length != 2) {
+                    content.getMessageAfterPrefix(MessageType.ERROR, "wrongCommand").ifPresent(sender::sendMessage);
+                    return false;
+                }
+
+                name = args[1];
+                furnitureUtil.removeFurniture(name);
+
+                content.getMessageAfterPrefix(MessageType.NORMAL, "removeFurniture").ifPresent(message -> {
+                    String replacedMessage = message.replace("{name}", name);
+                    player.sendMessage(replacedMessage);
+                });
+                return true;
+
+
+            case "menu":
             case "메뉴":
+                if (!player.hasPermission("starly.furniture.menu")) {
+                    content.getMessageAfterPrefix(MessageType.ERROR, "noPermission").ifPresent(sender::sendMessage);
+                    return false;
+                }
                 if (args.length != 1) {
                     content.getMessageAfterPrefix(MessageType.ERROR, "wrongCommand").ifPresent(sender::sendMessage);
                     return false;
                 }
 
-                furnitureUtil.openFurnitureMenu(player, 1);
-                break;
+                furnitureUtil.openFurnitureMenu(player);
+                content.getMessageAfterPrefix(MessageType.NORMAL, "openFurnitureMenu").ifPresent(player::sendMessage);
+                return true;
         }
 
         return false;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String s, String[] args) {
+
+        List<String> result = new ArrayList<>();
+        if (args.length == 1) {
+            if (sender.hasPermission("starly.furniture.reload")) result.add("리로드");
+            if (sender.hasPermission("starly.furniture.create")) result.add("생성");
+            if (sender.hasPermission("starly.furniture.remove")) result.add("삭제");
+            if (sender.hasPermission("starly.furniture.menu")) result.add("메뉴");
+
+            return StringUtil.copyPartialMatches(args[0], result, new ArrayList<>());
+        } else if (args.length == 2) {
+            if (args[0].equalsIgnoreCase("생성") || args[0].equalsIgnoreCase("create")) result.add("이름");
+            return Collections.emptyList();
+        } else if (args.length == 3) {
+            if (args[0].equalsIgnoreCase("생성") || args[0].equalsIgnoreCase("create")) result.add("커스텀모델데이터");
+            return Collections.emptyList();
+        }
+
+        return Collections.emptyList();
     }
 }
